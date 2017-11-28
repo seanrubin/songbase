@@ -1,8 +1,9 @@
 import os
-from flask import Flask, session, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'asdfghhggdpoij\]kcggf'
+app.config['SECRET_KEY'] = 'hard to guess secure key'
 
 # setup SQLAlchemy
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -34,17 +35,11 @@ def index():
     return render_template('index.html')
 
 
+
 @app.route('/artists')
 def show_all_artists():
     artists = Artist.query.all()
     return render_template('artist-all.html', artists=artists)
-
-
-# song-all.html adds song id to the edit button using a hidden input
-@app.route('/songs')
-def show_all_songs():
-    songs = Song.query.all()
-    return render_template('song-all.html', songs=songs)
 
 
 @app.route('/artist/add', methods=['GET', 'POST'])
@@ -63,24 +58,54 @@ def add_artists():
         return redirect(url_for('show_all_artists'))
 
 
-@app.route('/form-demo', methods=['GET', 'POST'])
-def form_demo():
+@app.route('/artist/edit/<int:id>', methods=['GET', 'POST'])
+def edit_artists(id):
+    artist=Artist.query.filter_by(id=id).first()
     if request.method == 'GET':
-        first_name = request.args.get('first_name') #this is for get
-        if first_name:
-            return render_template('form-demo.html', first_name=first_name)
-        else:
-            return render_template('form-demo.html', first_name=session.get('first_name'))
-
+        return render_template('artist-edit.html', artist=artist)
     if request.method == 'POST':
-        session['first_name'] = request.form['first_name']
-        return redirect(url_for('form_demo'))
+        # get data from the form
+        artist.name = request.form['name']
+        artist.about = request.form['about']
+
+        # insert the data into the database
+        artist = Artist(name=name, about=about)
+        db.session.add(artist)
+        db.session.commit()
+        return redirect(url_for('show_all_artists'))
 
 
-@app.route('/mysong')
-def mysong():
-    # return '<h1>hello world!!!</h1>'
-    return render_template('my-song.html')
+# song-all.html adds song id to the edit button using a hidden input
+@app.route('/songs')
+def show_all_songs():
+    songs = Song.query.all()
+    return render_template('song-all.html', songs=songs)
+
+
+@app.route('/song/add', methods=['GET', 'POST'])
+def add_songs():
+    if request.method == 'GET':
+        artists = Artist.query.all()
+        return render_template('song-add.html', artists=artists)
+    if request.method == 'POST':
+        # get data from the form
+        name = request.form['name']
+        year = request.form['year']
+        lyrics = request.form['lyrics']
+        artist_name = request.form['artist']
+        artist = Artist.query.filter_by(name=artist_name).first()
+        song = Song(name=name, year=year, lyrics=lyrics, artist=artist)
+
+        # insert the data into the database
+        db.session.add(song)
+        db.session.commit()
+        return redirect(url_for('show_all_songs'))
+
+
+@app.route('/form-demo', methods={'GET', 'POST'})
+def form_demo():
+    first_name = request.args.get('first_name')
+    return render_template('form-demo.html', first_name=first_name)
 
 
 @app.route('/users/<string:name>/')
